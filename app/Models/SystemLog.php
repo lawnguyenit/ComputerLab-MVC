@@ -10,51 +10,49 @@ class SystemLog extends Model
 {
     use HasFactory;
     protected $table = 'systemlogs';
-    protected $primaryKey = 'id';
-    protected $keyType = 'int';
     public $timestamps = false;
 
     protected $fillable = [
         'noi_dung_thuc_hien',
         'id_nguoidung',
         'thoi_gian_thuc_hien',
-        'hash',          // Thêm
-        'previous_hash'  // Thêm
+        'hash',
+        'previous_hash'
     ];
 
     protected $casts = [
         'thoi_gian_thuc_hien' => 'datetime',
     ];
 
-    /**
-     * Lấy thông tin người dùng thực hiện hành động
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'id_nguoidung');
-    }
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($log) {
-            // 1. Lấy dòng log cuối cùng được tạo ra
+            // 1. Lấy log cuối cùng
             $lastLog = SystemLog::orderBy('id', 'desc')->first();
-
-            // 2. Lấy hash của dòng trước (Nếu là dòng đầu tiên thì dùng genesis hash)
-            $prevHash = $lastLog ? $lastLog->hash : '00000000000000000000000000000000';
             
+            // 2. Lấy Hash cũ (Nếu chưa có thì dùng chuỗi khởi tạo)
+            $prevHash = $lastLog ? $lastLog->hash : '0000000000000000000000000000000000000000000000000000000000000000';
             $log->previous_hash = $prevHash;
 
-            // 3. Tạo hash cho dòng hiện tại
-            // Hash = SHA256(Nội dung + UserID + Thời gian + PreviousHash)
-            // Việc đưa PreviousHash vào đây tạo nên sự liên kết dây chuyền
+            // 3. Chuẩn bị dữ liệu để băm
+            // Lưu ý: Format ngày tháng phải cố định để tránh lệch khi kiểm tra lại
+            $timeString = $log->thoi_gian_thuc_hien->format('Y-m-d H:i:s');
+            
             $dataToHash = $log->noi_dung_thuc_hien . 
                           $log->id_nguoidung . 
-                          $log->thoi_gian_thuc_hien . 
+                          $timeString . 
                           $prevHash;
-                          
-            $log->hash = hash('sha256', $dataToHash);
+
+            // 4. [FIX QUAN TRỌNG] Dùng HMAC với APP_KEY của Laravel làm muối (Salt)
+            // Kẻ tấn công nếu không có APP_KEY thì không thể giả mạo chuỗi này.
+            $log->hash = hash_hmac('sha256', $dataToHash, env('APP_KEY'));
         });
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'id_nguoidung');
     }
 }

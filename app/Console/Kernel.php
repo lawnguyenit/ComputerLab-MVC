@@ -21,8 +21,22 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
+    }
+    protected function schedule_scan(Schedule $schedule): void
+    {
+        // Giữ nguyên các lệnh cũ của bạn (như SendDailySensorDataReport)
+        $schedule->command('app:send-daily-sensor-data-report')->dailyAt('07:00');
+        $schedule->command('mqtt:subscribe')->everyMinute(); // Ví dụ nếu có
+
+        // --- THÊM DÒNG NÀY ---
+        // Chạy quét bảo mật mỗi tiếng 1 lần
+        $schedule->command('security:scan-integrity')
+            ->hourly()
+            ->withoutOverlapping(); // Không chạy chồng chéo nếu lần trước chưa xong
+
+        // Hoặc nếu muốn demo nhanh thấy kết quả thì dùng ->everyMinute()
     }
 }

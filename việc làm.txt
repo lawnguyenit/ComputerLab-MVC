@@ -1,0 +1,3 @@
+toàn vẹn hệ thống:
++ sử dụng khoá lạc quan - bi quan  = khoá lại thao tác của người đến sau
++ sử dụng blockchain để phát hiện thay đổi nâng cao = log phía sau được tạo bởi băm của log phía trước

@@ -47,7 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
-
+    
     // Route::get('/dashboard', [AuthController::class, 'showDashboard'])->name('dashboard');
     Route::get('/home', [AuthController::class, 'showDashboard'])->name('home');
     Route::get('/profile', [AuthController::class,'showProfile'])->name('profile');
@@ -138,6 +138,8 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('admin-room')->name('admin-room.')->group(function () {
         Route::get('/', [AdminRoomController::class, 'index'])->name('index');
+        // Thêm vào trong nhóm Route middleware auth/admin
+        Route::post('/admin/security-scan', [App\Http\Controllers\AdminRoomController::class, 'scanIntegrity'])->name('admin.security_scan');
     });
 
     Route::prefix('datalist')->name('datalist.')->middleware(['auth'])->group(function () {

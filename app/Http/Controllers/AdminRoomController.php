@@ -133,29 +133,61 @@ class AdminRoomController extends Controller
 
         }
     }
-    public function verifyLogIntegrity()
+
+    public function scanIntegrity()
     {
+        // Tăng giới hạn thời gian chạy vì quét toàn bộ DB sẽ lâu
+        set_time_limit(300); 
+
         $logs = SystemLog::orderBy('id', 'asc')->get();
-        $alerts = [];
+        $errors = [];
+        $isCompromised = false;
 
         foreach ($logs as $key => $log) {
-            if ($key == 0)
-                continue; // Bỏ qua dòng đầu
+            // Bỏ qua dòng đầu tiên (Genesis block)
+            if ($key === 0) continue;
 
             $prevLog = $logs[$key - 1];
 
-            // Kiểm tra 1: Hash cũ được lưu có khớp với Hash thật của dòng trước không?
+            // KIỂM TRA 1: Liên kết chuỗi (Chain Link)
             if ($log->previous_hash !== $prevLog->hash) {
-                $alerts[] = "Đứt gãy chuỗi tại ID: " . $log->id . ". Log ID " . $prevLog->id . " có thể đã bị xóa hoặc sửa.";
+                $errors[] = "Phát hiện ĐỨT GÃY chuỗi tại Log ID #{$log->id}. Log trước đó (#{$prevLog->id}) có thể đã bị xóa hoặc sửa hash.";
+                $isCompromised = true;
             }
 
-            // Kiểm tra 2: Tính toán lại Hash hiện tại xem có khớp nội dung không
-            $recalculatedHash = hash('sha256', $log->noi_dung_thuc_hien . $log->id_nguoidung . $log->thoi_gian_thuc_hien . $log->previous_hash);
+            // KIỂM TRA 2: Tính toàn vẹn nội dung (Data Integrity)
+            // Tính lại hash dựa trên dữ liệu hiện tại + APP_KEY
+            $timeString = $log->thoi_gian_thuc_hien->format('Y-m-d H:i:s');
+            $dataToCheck = $log->noi_dung_thuc_hien . 
+                           $log->id_nguoidung . 
+                           $timeString . 
+                           $log->previous_hash;
+            
+            $recalculatedHash = hash_hmac('sha256', $dataToCheck, env('APP_KEY'));
+
             if ($recalculatedHash !== $log->hash) {
-                $alerts[] = "Dữ liệu tại ID " . $log->id . " đã bị sửa đổi trái phép!";
+                $errors[] = "Dữ liệu bị SỬA ĐỔI trái phép tại Log ID #{$log->id}. Nội dung không khớp với chữ ký.";
+                $isCompromised = true;
             }
+            
+            // Nếu phát hiện lỗi thì dừng ngay để báo cáo (hoặc chạy hết để liệt kê)
+            // Ở đây ta chạy hết để gom lỗi.
         }
 
-        return $alerts; // Nếu mảng rỗng -> Hệ thống toàn vẹn
+        if ($isCompromised) {
+            // [NÂNG CAO] Gửi mail báo động ngay lập tức (như m đã làm ở phần trước)
+            // ... logic gửi mail ...
+            
+            return redirect()->back()->with([
+                'error' => 'CẢNH BÁO ĐỎ: Hệ thống dữ liệu đã bị can thiệp trái phép!',
+                'integrity_report' => $errors, // Truyền biến này ra View để hiển thị list lỗi
+                'title' => 'Security Alert'
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'success' => 'Đã quét ' . count($logs) . ' bản ghi. Hệ thống toàn vẹn 100%.',
+            'title' => 'Security Scan'
+        ]);
     }
 }

@@ -50,9 +50,6 @@ class MqttDataController extends Controller
             // Ghi log để kiểm tra dữ liệu đầu vào
             Log::info('Nhận dữ liệu MQTT: ' . $request->getContent());
 
-            // Lấy dữ liệu từ request
-            $data = json_decode($request->getContent(), true);
-
 
             if (!$data) {
                 Log::error('Dữ liệu MQTT không hợp lệ: ' . $request->getContent());
