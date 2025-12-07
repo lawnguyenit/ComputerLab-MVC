@@ -1,0 +1,349 @@
+@extends('layouts.app')
+@section('title', 'Truy cập phòng')
+@section('css')
+    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
+    <style>
+        .hover-shadow:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+        }
+
+        .transition {
+            transition: all .3s ease;
+        }
+
+        .room-card {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        .room-card:hover {
+            border-color: #0d6efd;
+        }
+        
+        .sensor-card {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background-color: #fff;
+            border: none;
+            margin-bottom: 20px;
+            padding: 10px;
+            margin-left: 10px;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .sensor-title {
+            font-weight: 600;
+            color:rgb(47, 0, 255);
+            margin-bottom: 1px;
+            font-size: 16px;
+        }
+
+        .sensor-unit {
+            color: #6c757d;
+            font-size: 13px;
+            margin-bottom: 10px;
+            padding-left: 5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 30px;
+            color: #6c757d;
+            font-style: italic;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .title_tab {
+            font-size: 20px;
+            font-weight: bold;
+            color: #0d6efd;
+            padding: 10px;
+        }
+
+
+    </style>
+@endsection
+
+@section('content')
+@if ($id_phong==0)
+    <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-lg-12" style="padding-left: 0;">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title my-ibox-title">
+                        <h2>Danh sách phòng máy</h2>
+                    </div>
+                    <div class="ibox-content">
+                        <div class="row">
+                            @foreach ($rooms as $room)
+                                <div class="col-md-3" onclick="accessRoom('{{ $room->id }}', '{{ $room->ten_phong }}', '{{ $room->khu_vuc }}', '{{ $room->vi_tri }}')">
+                                    <a href=""
+                                        class="text-decoration-none"   
+                                        data-id="{{ $room->id }}"
+                                        data-toggle="modal"
+                                        data-target="#accessModal">
+                                        <div class="card h-100 room-card hover-shadow transition">
+                                            <div class="card-body text-center p-4">
+                                                <i class="fas fa-door-open fa-3x text-primary mb-3"></i>
+                                                <h4 class="card-title text-dark">{{ $room->ten_phong }}</h4>
+                                                <p class="card-text text-muted">
+                                                    {{ $room->khu_vuc }} - {{ $room->vi_tri }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@else
+<div class="wrapper wrapper-content animated fadeInRight">
+        <div class="row">
+            <div class="col-lg-12" style="padding-left: 0;">
+                <div class="ibox float-e-margins">
+                    <div class="ibox-title my-ibox-title">
+                        @php
+                            $roomcomputer = $rooms->where('id', $id_phong)->first();
+                        @endphp
+                        <h2>Phòng máy tính {{ $roomcomputer->ten_phong }} - {{ $roomcomputer->khu_vuc }} - {{ $roomcomputer->vi_tri }} </h2>
+                        
+                    </div>
+                    <div class="ibox-content">
+                        <div class="row">
+                            <div class="row mt-4">
+                                <div class="col-lg-12">
+                                    <div class="card">
+                                        <div class="card-body"  >
+                                            <div class="ibox-title my-ibox-title">
+                                                <h4 class="title_tab mb-4">
+                                                    Dữ liệu cảm biến trong ngày
+                                                </h4>
+                                                <div class="d-flex gap-2">
+                                                    <button id="toggleChartBtn" class="btn btn-primary" onclick="toggleChartVisibility()">
+                                                        <i class="fas fa-eye" id="iconchart"></i><span id="showchart"> Hiện dữ liệu</span> 
+                                                    </button>
+
+                                                    <script>
+                                                        function toggleChartVisibility() {
+                                                            const chartContainer = document.getElementById('card_chart');
+                                                            if (chartContainer.style.display === 'none') {
+                                                                chartContainer.style.display = 'block';
+                                                                document.getElementById('showchart').textContent = ' Ẩn dữ liệu';
+                                                                document.getElementById('iconchart').classList.remove('fa-eye');
+                                                                document.getElementById('iconchart').classList.add('fa-eye-slash');
+                                                            } else {
+                                                                chartContainer.style.display = 'none';
+                                                                document.getElementById('showchart').textContent = ' Hiện dữ liệu';
+                                                                document.getElementById('iconchart').classList.remove('fa-eye-slash');
+                                                                document.getElementById('iconchart').classList.add('fa-eye');
+                                                            }
+                                                        }
+                                                    </script>
+                                                </div>
+                            
+                                            </div>
+
+                                            
+                                            <div class="row mx-2" id="card_chart" style="display: none; width: 100%; align-items: center">
+                                                @if(isset($datalist) && count($datalist) > 0)
+                                                <div class="row" style="align-items: center; margin: 0px 10px 0px 10px; padding: 20px;  width: 100%">
+                                                    @foreach($datalist as $index => $sensor)
+                                                        <div class="col-lg-6">
+                                                            <div class="card sensor-card">
+                                                                <div class="card-body">
+                                                                    <h5 class="sensor-title">{{ $sensor['title'] }}</h5>
+                                                                    <div class="sensor-unit">Đơn vị: {{ $sensor['storageunits'] ?? '' }}</div>
+                                                                    <div class="chart-container">
+                                                                        <canvas id="sensorChart{{ $index }}"></canvas>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                @else
+                                                <div class="no-data-message">
+                                                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                                                    <p>Không có dữ liệu cảm biến nào được tìm thấy cho phòng này.</p>
+                                                </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    
+@endif
+
+@endsection
+@include('access-room.partials.modals')
+@section('js')
+<script>
+    function accessRoom(roomId, roomName, roomLocation, roomPosition) {
+        document.getElementById('roomId').value = roomId;
+        document.getElementById('roomName').textContent = roomName +' - '+ roomLocation+' - '+roomPosition;
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sensorData = @json($datalist ?? []);
+    
+    sensorData.forEach((sensor, index) => {
+        createSensorChart(sensor, index);
+    });
+    
+    function createSensorChart(sensorInfo, index) {
+        const ctx = document.getElementById(`sensorChart${index}`).getContext('2d');
+        
+        // Xác định màu sắc dựa trên loại cảm biến
+        let chartColor, chartGradient;
+        
+        // Màu xanh lá cho cảm biến ánh sáng
+        if (sensorInfo.title.toLowerCase().includes('ánh sáng')) {
+            chartColor = '#1cc88a';
+            chartGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            chartGradient.addColorStop(0, 'rgba(28, 200, 138, 0.4)');
+            chartGradient.addColorStop(1, 'rgba(28, 200, 138, 0.05)');
+        } 
+        // Màu xanh dương cho cảm biến nhiệt độ
+        else if (sensorInfo.title.toLowerCase().includes('dht')) {
+            chartColor = '#36b9cc';
+            chartGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            chartGradient.addColorStop(0, 'rgba(54, 185, 204, 0.4)');
+            chartGradient.addColorStop(1, 'rgba(54, 185, 204, 0.05)');
+        }
+        // Màu mặc định
+        else {
+            chartColor = '#4e73df';
+            chartGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            chartGradient.addColorStop(0, 'rgba(78, 115, 223, 0.4)');
+            chartGradient.addColorStop(1, 'rgba(78, 115, 223, 0.05)');
+        }
+        
+        // Chuẩn bị dữ liệu cho biểu đồ
+        const chartData = {
+            labels: sensorInfo.data.map(item => item.time),
+            datasets: [{
+                label: sensorInfo.title,
+                data: sensorInfo.data.map(item => item.value),
+                backgroundColor: chartGradient,
+                borderColor: chartColor,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: chartColor,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: chartColor,
+                pointHoverBorderColor: '#fff',
+                tension: 0.4,
+                fill: true
+            }]
+        };
+        
+        // Cấu hình biểu đồ
+        const config = {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 10,
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        padding: 10,
+                        cornerRadius: 4,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            drawBorder: false,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            color: '#666'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 0,
+                            font: {
+                                size: 11
+                            },
+                            color: '#666',
+                            maxTicksLimit: 10
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                },
+                elements: {
+                    line: {
+                        tension: 0.4
+                    }
+                },
+                animation: {
+                    duration: 1000
+                }
+            }
+        };
+        
+        // Tạo biểu đồ
+        new Chart(ctx, config);
+    }
+});
+</script>
+@endsection

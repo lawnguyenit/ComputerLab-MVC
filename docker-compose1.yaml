@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # 1. App Laravel (PHP-FPM)
+  app:
+    image: my-laravel-app       # Tên image bạn vừa build
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html        # Mount code từ máy thật vào để sửa là cập nhật ngay
+    networks:
+      - computerlab-net
+
+  # 2. Web Server (Nginx)
+  nginx:
+    image: nginx:alpine
+    container_name: laravel_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"               # Mở cổng 8000 (Bạn sẽ truy cập localhost:8000)
+    volumes:
+      - ./:/var/www/html        # Nginx cần nhìn thấy file public
+      - ./nginx/conf.d:/etc/nginx/conf.d # Mount file cấu hình (Tạo ở bước 2)
+    depends_on:
+      - app
+    networks:
+      - computerlab-net
+
+  # 3. Database (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: laravel_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: laravel_db
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: password
+      MYSQL_USER: user
+    ports:
+      - "3306:3306"             # Để bạn dùng Navicat/DBeaver kết nối vào quản lý
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - computerlab-net
+
+networks:
+  computerlab-net:
+    driver: bridge
+
+volumes:
+  dbdata:
