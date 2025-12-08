@@ -1,66 +1,155 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🖥️ Hướng dẫn sử dụng - ComputerLab MVC
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Phiên bản hướng dẫn này là một bản hướng dẫn tuần tự bắt buộc: khi ai đó tải repository này về, hãy *thực hiện theo các bước theo đúng thứ tự* (bạn có thể **thêm** ghi chú hoặc bước phụ trợ, nhưng **không được bỏ bớt** các bước cốt lõi).
 
-## About Laravel
+Mục tiêu: giúp người mới dựng và chạy dự án bằng Docker, import dữ liệu mẫu, và biết nơi cấu hình biến môi trường.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 Yêu cầu trước khi bắt đầu
+- Git (để clone repo)
+- Docker và Docker Compose (Docker Desktop trên Windows/Mac hoặc Docker Engine + Compose)
+- Ít nhất 4GB RAM cho container (tùy quy mô dữ liệu)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+> Ghi chú: không cần cài PHP/MySQL/Nginx/Composer trên máy thật nếu dùng Docker theo hướng dẫn.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 Hướng dẫn cài đặt và chạy (bắt buộc, theo thứ tự)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+> Lưu ý: các bước sau đây là bắt buộc và phải chạy theo thứ tự — bạn có thể **thêm** bước phụ trợ nhưng **không được bỏ** bước cốt lõi.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Bước 1 — Lấy mã nguồn
+Mở Terminal (PowerShell trên Windows) và chạy:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+git clone https://github.com/lawnguyenit/ComputerLab-MVC.git
+cd ComputerLab-MVC
+```
 
-## Laravel Sponsors
+### Bước 2 — Tạo file cấu hình môi trường `.env`
+Nhân bản file ví dụ `.env.example` thành `.env` (bắt buộc):
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+PowerShell (Windows):
+```powershell
+Copy-Item .env.example .env
+```
 
-### Premium Partners
+Linux / Git Bash / macOS:
+```bash
+cp .env.example .env
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Mở `.env` và xác nhận các biến quan trọng sau đã đúng với cấu hình Docker (tên service, database, user, password):
+- `DB_CONNECTION` (mặc định: `mysql`)
+- `DB_HOST` (trong Docker Compose thường là `laravel_db`)
+- `DB_PORT` (mặc định: `3306`)
+- `DB_DATABASE` (mặc định: `laravel_db`)
+- `DB_USERNAME` / `DB_PASSWORD`
 
-## Contributing
+> Không commit file `.env` chứa thông tin nhạy cảm lên Git.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Bước 3 — Khởi động Docker stack
+Khởi tạo và build các container (bắt buộc):
 
-## Code of Conduct
+```bash
+docker-compose up -d --build
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Chờ đến khi container khởi động xong trước khi tiếp tục (dùng `docker ps` để kiểm tra).
 
-## Security Vulnerabilities
+### Bước 4 — Cài dependencies và cấu hình application
+Chạy các lệnh trong container ứng dụng Laravel (mặc định service name là `laravel_app`):
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+docker exec -it laravel_app composer install
+docker exec -it laravel_app php artisan key:generate
+```
 
-## License
+### Bước 5 — Import database mẫu
+Import file SQL mẫu (tệp `quanlyphongmaytinh.sql` đã có trong repository) vào container database (mặc định user/password theo `docker-compose`):
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+docker exec -i laravel_db mysql -uuser -p123123 laravel_db < quanlyphongmaytinh.sql
+```
+
+Thay `user` / `123123` bằng giá trị bạn đã cấu hình trong `.env` / `docker-compose.yaml` nếu bạn đã chỉnh sửa.
+
+### Bước 6 — Migrate & Seed
+Chạy migration và seed (bắt buộc):
+
+```bash
+docker exec -it laravel_app php artisan migrate --seed
+```
+
+### Bước 7 — Phân quyền thư mục storage và cache
+Thiết lập quyền để webserver trong container có thể ghi:
+
+```bash
+docker exec -it laravel_app chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+```
+
+### Bước 8 — Kiểm tra ứng dụng
+Truy cập ứng dụng trên trình duyệt tại `http://localhost:8080` hoặc cổng mà `docker-compose.yaml` đã expose (kiểm tra file `docker-compose.yaml`).
+
+---
+
+## Phần cấu hình chi tiết và các lưu ý quan trọng
+- **Không bỏ qua bất kỳ bước nào ở phần trên** — mọi bước đều bắt buộc để ứng dụng hoạt động đúng.
+- Bạn có thể thêm các bước phụ (ví dụ: cài thêm tools, cron jobs), nhưng không được xóa các bước cốt lõi.
+
+### Biến môi trường (.env)
+File `.env.example` chứa cấu trúc các biến môi trường. Ví dụ mẫu:
+
+```ini
+APP_NAME=ComputerLab
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost
+
+DB_CONNECTION=mysql
+DB_HOST=laravel_db
+DB_PORT=3306
+DB_DATABASE=laravel_db
+DB_USERNAME=user
+DB_PASSWORD=123123
+```
+
+Sau khi chỉnh `.env`, nếu bạn đang caching config trong Laravel, chạy:
+
+```bash
+docker exec -it laravel_app php artisan config:clear
+docker exec -it laravel_app php artisan cache:clear
+```
+
+### Cập nhật dependencies
+Nếu cần cập nhật package PHP:
+
+```bash
+docker exec -it laravel_app composer update
+```
+
+---
+
+## Chạy test & kiểm tra chất lượng (tùy chọn nhưng khuyến nghị)
+- Chạy unit/integration tests (nếu có):
+
+```bash
+docker exec -it laravel_app ./vendor/bin/phpunit
+```
+
+- Chạy static analysis (nếu cấu hình): `phpstan`/`psalm` theo thiết lập của dự án.
+
+---
+
+## Xử lý sự cố phổ biến
+- Nếu container `laravel_app` không khởi động: kiểm tra logs
+```bash
+docker logs laravel_app
+```
+- Nếu lỗi kết nối DB: kiểm tra `DB_HOST` trong `.env` và trạng thái container DB `docker ps`.
+- Nếu migration bị fail: kiểm tra lỗi chi tiết trong logs và rollback migration nếu cần.
+
+## Bảo mật & vận hành
+- Tuyệt đối không commit `.env` với mật khẩu thật.
+- Backup database thường xuyên trước khi chạy migration lớn.
+- Sử dụng staging environment để test release trước production.
