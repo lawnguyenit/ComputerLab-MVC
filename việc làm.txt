@@ -1,0 +1,7 @@
+toàn vẹn hệ thống:
++ sử dụng khoá lạc quan - bi quan  = khoá lại thao tác của người đến sau
++ sử dụng chữ ký số để định danh backup và so sánh 
+Chống lại và khắc phục sự cố sập hệ thống
+- Server -> Client 
+    + Kiểm tra tính sống còn: nếu on thì thôi - offline thì yêu cầu cài đặt lại và thông số backup
+    + 
