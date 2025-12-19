@@ -12,8 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Chạy vào 23:59 hàng ngày
         $schedule->command('email:daily-report')->dailyAt('23:59');
+        $schedule->command('security:seal-daily-telemetry')->dailyAt('00:10');
+        $schedule->command('security:scan-integrity')->hourly();
     }
 
     /**
@@ -21,7 +22,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }
