@@ -1,0 +1,271 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\DataList;
+use App\Models\Device;
+use Illuminate\Http\Request;
+use App\Models\Room;
+use App\Models\User;
+use App\Models\Roomusagehistory;
+use App\Models\SystemLog;
+use App\Models\Sensor;
+use App\Models\Storageunit;
+use Illuminate\Support\Facades\Auth;
+
+class AccessRoomController extends Controller
+{
+    public function index()
+    {
+        $rooms = Room::all();
+        $id_phong = env('ID_PHONG');
+        $devices = Device::where('id_phong', $id_phong)->get();
+        $sensors = Sensor::where('id_phong', $id_phong)->get();
+        $datalist = [];
+        $datatime = [];
+
+        // Lọc cảm biến có id_loaicambien là 1 và 4
+        $filteredSensors = $sensors->whereIn('id_loaicambien', [1, 4]);
+
+        foreach ($filteredSensors as $sensor) {
+            //Thông tin cơ bản
+            $storageUnit = null;
+            $dataListEntry = DataList::where('id_cambien', $sensor->id)->orderBy('id', 'desc')->first();
+            if ($dataListEntry && $dataListEntry->id_donviluutru) {
+                $storageUnit = Storageunit::find($dataListEntry->id_donviluutru);
+            }
+            $storageunits = $storageUnit ? $storageUnit->ten_don_vi_luu_tru : 'N/A';
+            $sensorStatus = $sensor->id_trangthai == 1 ? 'Hoạt động' : 'Không hoạt động';
+            $title = $sensor->ten_cam_bien . ' - ' . $sensor->ma_so . ' - ' . $sensorStatus;
+
+            //Xử lý dữ liệu
+            $sensorData = DataList::where('id_cambien', $sensor->id)
+                ->whereBetween('thoi_gian_thu_thap', [
+                    now()->startOfDay(),
+                    now()->endOfDay()
+                ])
+                ->orderBy('thoi_gian_thu_thap', 'asc')
+                ->pluck('du_lieu_thu_thap', 'thoi_gian_thu_thap')
+                ->toArray();
+
+            $max = !empty($sensorData) ? max(array_values($sensorData)) : 0;
+            $min =!empty($sensorData)? min(array_values($sensorData)) : 0;
+            $avg = !empty($sensorData) ? array_sum($sensorData) / count($sensorData) : 0;
+  
+            $latestData = DataList::where('id_cambien', $sensor->id)
+                ->orderBy('thoi_gian_thu_thap', 'desc')
+                ->first();
+
+            $currentValue = $latestData ? $latestData->du_lieu_thu_thap : 0;
+            $time = $latestData? $latestData->thoi_gian_thu_thap : 'NA';
+           
+            // Chuyển đổi dữ liệu để dễ dàng sử dụng trong biểu đồ
+            $formattedData = [];
+            foreach ($sensorData as $time => $value) {
+                $formattedData[] = [
+                    'time' => date('H:i', strtotime($time)),
+                    'value' => $value
+                ];
+            }
+            
+            $datalist[] = [
+                'title' => $title,
+                'storageunits' => $storageunits,
+                'data' => $formattedData,
+                'raw_data' => $sensorData
+            ];
+
+            $datatime[] = [
+                'title' => $sensor->ten_cam_bien . ' - ' . $sensor->ma_so,
+                'max' => $max,
+                'min' => $min,
+                'avg' => $avg,
+                'current_value' => $currentValue,
+                'time' => $time,
+                'storageunits' => $storageunits,
+                'sensor_status' => $sensorStatus
+            ];
+        }
+
+
+
+
+        $filteredSensors = $sensors->whereIn('id_loaicambien', [2]);
+        foreach ($filteredSensors as $sensor) {
+            //Thông tin cơ bản
+            $data = DataList::where('id_cambien', $sensor->id)->first();
+            $storageunit = $data ? Storageunit::find($data->id_donviluutru) : null;
+            $storageunits = $storageunit ? $storageunit->ten_don_vi_luu_tru : 'N/A';
+            $sensorStatus = $sensor->id_trangthai == 1 ? 'Hoạt động' : 'Không hoạt động';
+            $title = $sensor->ten_cam_bien . ' - ' . $sensor->ma_so . ' - ' . $sensorStatus;
+            //Xử lý dữ liệu
+
+            $sensorDatand = DataList::where('id_cambien', $sensor->id)
+                ->where('id_donviluutru', 3)
+                ->whereBetween('thoi_gian_thu_thap', [
+                    now()->startOfDay(),
+                    now()->endOfDay()
+                ])
+                ->orderBy('thoi_gian_thu_thap', 'asc')
+                ->pluck('id', 'du_lieu_thu_thap', 'thoi_gian_thu_thap')
+                ->toArray();
+
+            $formattedData = [];
+            foreach ($sensorDatand as $time => $value) {
+                $formattedData[] = [
+                    'time' => date('H:i', strtotime($time)),
+                    'value' => $value
+                ];
+            }
+            
+            $datalist[] = [
+                'title' => $title,
+                'storageunits' => Storageunit::find(3)->ten_don_vi_luu_tru,
+                'data' => $formattedData,
+                'raw_data' => $sensorDatand
+            ];
+            
+
+            $max =!empty($sensorDatand)? max(array_values($sensorDatand)) : 0;
+            $min =!empty($sensorDatand)? min(array_values($sensorDatand)) : 0;
+            $avg =!empty($sensorDatand)? array_sum($sensorDatand) / count($sensorDatand) : 0;
+            $latestData = DataList::where('id_cambien', $sensor->id)
+                ->where('id_donviluutru', 3)
+                ->orderBy('thoi_gian_thu_thap', 'desc')
+                ->first();
+
+            $currentValue = $latestData? $latestData->du_lieu_thu_thap : 0;
+            $time = $latestData? $latestData->thoi_gian_thu_thap : 'NA';
+
+            $datatime[] = [
+                'title' => $sensor->ten_cam_bien . ' - ' . $sensor->ma_so,
+                'max' => $max,
+                'min' => $min,
+                'avg' => $avg,
+                'current_value' => $currentValue,
+                'time' => $time,
+                'storageunits' => $storageunits,
+                'sensor_status' => $sensorStatus
+            ];
+
+
+            $sensorDatada = DataList::where('id_cambien', $sensor->id)
+                ->where('id_donviluutru', 4)
+                ->whereBetween('thoi_gian_thu_thap', [
+                    now()->startOfDay(),
+                    now()->endOfDay()
+                ])
+                ->orderBy('thoi_gian_thu_thap', 'asc')
+                ->pluck('du_lieu_thu_thap', 'thoi_gian_thu_thap')
+                ->toArray();
+
+            $formattedData = [];
+            foreach ($sensorDatada as $time => $value) {
+                $formattedData[] = [
+                    'time' => date('H:i', strtotime($time)),
+                    'value' => $value
+                ];
+            }
+            
+            $datalist[] = [
+                'title' => $title,
+                'storageunits' => Storageunit::find(4)->ten_don_vi_luu_tru,
+                'data' => $formattedData,
+                'raw_data' => $sensorDatada
+            ];
+                
+    
+            $max =!empty($sensorDatada)? max(array_values($sensorDatada)) : 0;
+            $min =!empty($sensorDatada)? min(array_values($sensorDatada)) : 0;
+            $avg =!empty($sensorDatada)? array_sum($sensorDatada) / count($sensorDatada) : 0;
+            $latestData = DataList::where('id_cambien', $sensor->id)
+                ->where('id_donviluutru', 3)
+                ->orderBy('thoi_gian_thu_thap', 'desc')
+                ->first();
+
+            $currentValue = $latestData? $latestData->du_lieu_thu_thap : 0;
+            $time = $latestData? $latestData->thoi_gian_thu_thap : 'NA';
+
+            $datatime[] = [
+                'title' => $sensor->ten_cam_bien . ' - ' . $sensor->ma_so,
+                'max' => $max,
+                'min' => $min,
+                'avg' => $avg,
+                'current_value' => $currentValue,
+                'time' => $time,
+                'storageunits' => $storageunits,
+                'sensor_status' => $sensorStatus
+            ];
+            
+            
+            $storageUnit = null;
+            $dataListEntry = DataList::where('id_cambien', $sensor->id)->orderBy('id', 'desc')->first();
+            if ($dataListEntry && $dataListEntry->id_donviluutru) {
+                $storageUnit = Storageunit::find($dataListEntry->id_donviluutru);
+            }
+            $storageunits = $storageUnit ? $storageUnit->ten_don_vi_luu_tru : 'N/A';
+
+    
+        }
+        
+        return view('access-room.index', compact('rooms', 'devices', 'datalist', 'sensors', 'id_phong', 'datatime'));
+    }
+
+    public function access(Request $request) {
+       try {
+            $validatedData = $request->validate([
+                'qrCodeValue' => 'required|string',
+                'roomId' => 'required|exists:rooms,id',
+            ], [
+                'qrCodeValue.required' => 'Vui lòng quét mã QR',
+                'qrCodeValue.string' => 'Mã QR không hợp lệ',
+                'roomId.required' => 'Vui lòng chọn phòng',
+                'roomId.exists' => 'Phòng không tồn tại',
+            ]);
+
+            $user = User::find(Auth::id());
+
+            if ($request->qrCodeValue == $user->password ) {
+
+                Roomusagehistory::create([
+                    'id_nguoidung' => $user->id,
+                    'id_phong' => $request->roomId,
+                    'thoi_gian_bat_dau' => now()->setTimezone('Asia/Ho_Chi_Minh'),
+                    'thoi_gian_ket_thuc' => null,
+                    'id_trangthaisudung' => 2,
+                ]);
+
+                SystemLog::create([
+                    'noi_dung_thuc_hien' => "Truy cập phòng ".Room::find($request->roomId)->ten_phong,
+                    'id_nguoidung' => Auth::id(),
+                    'thoi_gian_thuc_hien' => now()->setTimezone('Asia/Ho_Chi_Minh'),
+                ]);
+
+                $envContent = file_get_contents(base_path('.env'));
+                $pattern = '/ID_PHONG=.*/';
+                $replacement = 'ID_PHONG=' . $request->roomId;
+
+                if (preg_match($pattern, $envContent)) {
+                    $envContent = preg_replace($pattern, $replacement, $envContent);
+                } else {
+                    $envContent .= "\n" . $replacement;
+                }
+
+                file_put_contents(base_path('.env'), $envContent);
+
+                return redirect()->route('access-room.index')->with([
+                    'success'=> 'Đăng nhập thành công',
+                    'title' => 'Thông báo']);
+            } else {
+                return redirect()->route('access-room.index')->with([
+                    'error'=> 'Mã QR không hợp lệ. Vui lòng thử lại.',
+                    'title' => 'Lỗi truy cập']);
+            }
+
+
+       } catch (\Exception $e) {
+           return response()->json(['error' => $e->getMessage()], 500);
+       }
+
+    }
+}

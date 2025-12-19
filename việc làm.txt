@@ -1,3 +1,7 @@
 toàn vẹn hệ thống:
 + sử dụng khoá lạc quan - bi quan  = khoá lại thao tác của người đến sau
-+ sử dụng blockchain để phát hiện thay đổi nâng cao = log phía sau được tạo bởi băm của log phía trước
++ sử dụng chữ ký số để định danh backup và so sánh 
+Chống lại và khắc phục sự cố sập hệ thống
+- Server -> Client 
+    + Kiểm tra tính sống còn: nếu on thì thôi - offline thì yêu cầu cài đặt lại và thông số backup
+    + 

@@ -40,6 +40,7 @@ class User extends Authenticatable
         'ho_ten',
         'sdt',
         'id_khoa',
+        'status'
     ];
 
     /**
